@@ -53,6 +53,11 @@ type Log struct {
 	RequestId         string `json:"request_id,omitempty" gorm:"type:varchar(64);index:idx_logs_request_id;default:''"`
 	UpstreamRequestId string `json:"upstream_request_id,omitempty" gorm:"type:varchar(128);index:idx_logs_upstream_request_id;default:''"`
 	Other             string `json:"other"`
+	// RequestBody / ResponseBody hold opt-in input/output content (prompt + completion text).
+	// Populated only when the owning user enables RecordContentLog; otherwise empty.
+	// Stripped for non-admin viewers in formatUserLogs.
+	RequestBody  string `json:"request_body,omitempty" gorm:"type:text"`
+	ResponseBody string `json:"response_body,omitempty" gorm:"type:text"`
 }
 
 // don't use iota, avoid change log type value
@@ -91,6 +96,10 @@ func assignDisplayLogIds(logs []*Log, startIdx int) {
 func formatUserLogs(logs []*Log, startIdx int) {
 	for i := range logs {
 		logs[i].ChannelName = ""
+		// Opt-in content logging is admin-only; strip from non-admin (user-facing)
+		// log views, mirroring how admin_info/audit_info are removed below.
+		logs[i].RequestBody = ""
+		logs[i].ResponseBody = ""
 		var otherMap map[string]interface{}
 		otherMap, _ = common.StrToMap(logs[i].Other)
 		if otherMap != nil {
@@ -313,6 +322,10 @@ type RecordConsumeLogParams struct {
 	IsStream         bool                   `json:"is_stream"`
 	Group            string                 `json:"group"`
 	Other            map[string]interface{} `json:"other"`
+	// RequestBody / ResponseBody carry opt-in content logging. They are only set
+	// by the caller when the user has RecordContentLog enabled; empty otherwise.
+	RequestBody  string `json:"request_body"`
+	ResponseBody string `json:"response_body"`
 }
 
 func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams) {
@@ -357,6 +370,10 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 		RequestId:         requestId,
 		UpstreamRequestId: upstreamRequestId,
 		Other:             otherStr,
+		// Opt-in content logging. Caller passes non-empty values only when the
+		// user enabled RecordContentLog; default is "" => zero behavioral change.
+		RequestBody:  params.RequestBody,
+		ResponseBody: params.ResponseBody,
 	}
 	err := createLog(log)
 	if err != nil {

@@ -90,3 +90,9 @@ export async function getUptimeStatus() {
   )
   return res.data
 }
+
+// Get upstream key status (admin only)
+export async function getKeyStatus() {
+  const res = await api.get('/api/jn/key-status')
+  return res.data
+}

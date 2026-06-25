@@ -1142,8 +1142,64 @@ export function DetailsDialog(props: DetailsDialogProps) {
             </div>
           </div>
         )}
+
+        {/* Opt-in content logging (request/response body). Only present when the
+            user enabled RecordContentLog and the viewer is admin (server strips
+            it for non-admin). Shown only when non-empty. */}
+        {props.log.request_body && (
+          <ContentBodyBlock
+            label={t('Request Content')}
+            value={props.log.request_body}
+            copyTitle={t('Copy to clipboard')}
+            copiedText={copiedText}
+            onCopy={copyToClipboard}
+          />
+        )}
+        {props.log.response_body && (
+          <ContentBodyBlock
+            label={t('Response Content')}
+            value={props.log.response_body}
+            copyTitle={t('Copy to clipboard')}
+            copiedText={copiedText}
+            onCopy={copyToClipboard}
+          />
+        )}
       </div>
     </Dialog>
+  )
+}
+
+function ContentBodyBlock(props: {
+  label: string
+  value: string
+  copyTitle: string
+  copiedText: string | null
+  onCopy: (text: string) => void
+}) {
+  const { label, value, copyTitle, copiedText, onCopy } = props
+  return (
+    <div className='space-y-1.5'>
+      <Label className='text-xs font-semibold'>{label}</Label>
+      <div className='bg-muted/30 relative min-w-0 overflow-hidden rounded-md border p-2.5'>
+        <Button
+          variant='ghost'
+          size='sm'
+          className='absolute top-1.5 right-1.5 h-5 w-5 p-0'
+          onClick={() => onCopy(value)}
+          title={copyTitle}
+          aria-label={copyTitle}
+        >
+          {copiedText === value ? (
+            <Check className='size-3 text-green-600' />
+          ) : (
+            <Copy className='size-3' />
+          )}
+        </Button>
+        <pre className='bg-background/60 max-h-64 min-w-0 overflow-auto rounded pr-6 font-mono text-[11px] leading-relaxed wrap-break-word whitespace-pre-wrap'>
+          {value}
+        </pre>
+      </div>
+    </div>
   )
 }
 

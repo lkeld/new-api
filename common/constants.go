@@ -115,6 +115,10 @@ var MemoryCacheEnabled bool
 
 var LogConsumeEnabled = true
 
+// LogContentMaxBytes caps the per-field size of opt-in content logging
+// (request_body / response_body) before it is persisted, to bound DB growth.
+const LogContentMaxBytes = 16 * 1024
+
 var TLSInsecureSkipVerify bool
 var InsecureTLSConfig = &tls.Config{InsecureSkipVerify: true}
 

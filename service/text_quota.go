@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -55,6 +56,15 @@ type textQuotaSummary struct {
 	AudioInputPrice          float64
 	ImageGenerationCallPrice float64
 	ToolCallSurchargeQuota   decimal.Decimal
+}
+
+// truncateContentLog bounds opt-in content-log fields to common.LogContentMaxBytes
+// before persistence. Only invoked when the user opted into content logging.
+func truncateContentLog(b []byte) string {
+	if len(b) > common.LogContentMaxBytes {
+		b = b[:common.LogContentMaxBytes]
+	}
+	return string(b)
 }
 
 func cacheWriteTokensTotal(summary textQuotaSummary) int {
@@ -459,6 +469,30 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 		InjectTieredBillingInfo(other, relayInfo, tieredResult)
 	}
 
+	// Opt-in content logging (input/output text). OFF by default and per-user.
+	// SAFETY: when the flag is off, this whole block is skipped — no request-body
+	// read, no copying, no extra work — so the relay path is unchanged.
+	var capturedRequestBody string
+	var capturedResponseBody string
+	if s, err := model.GetUserSetting(relayInfo.UserId, false); err == nil && s.RecordContentLog {
+		// Request body: still cached on the context at this point.
+		if seeker, rerr := common.GetRequestBody(ctx); rerr == nil && seeker != nil {
+			if reader, ok := seeker.(io.Reader); ok {
+				// Cap the read so an oversized body is never fully buffered here;
+				// truncateContentLog applies the final hard cap.
+				limited := io.LimitReader(reader, common.LogContentMaxBytes+1)
+				if reqBytes, rerr2 := io.ReadAll(limited); rerr2 == nil {
+					capturedRequestBody = truncateContentLog(reqBytes)
+				}
+			}
+		}
+		// Response body: populated by the adaptor (non-streaming) or the stream
+		// scanner (streaming) only when RecordContentLog was on.
+		if len(relayInfo.CapturedResponseBody) > 0 {
+			capturedResponseBody = truncateContentLog(relayInfo.CapturedResponseBody)
+		}
+	}
+
 	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
 		ChannelId:        relayInfo.ChannelId,
 		PromptTokens:     summary.PromptTokens,
@@ -472,6 +506,8 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 		IsStream:         relayInfo.IsStream,
 		Group:            relayInfo.UsingGroup,
 		Other:            other,
+		RequestBody:      capturedRequestBody,
+		ResponseBody:     capturedResponseBody,
 	})
 	gopool.Go(func() {
 		perfmetrics.RecordRelaySample(relayInfo, true, int64(summary.CompletionTokens))

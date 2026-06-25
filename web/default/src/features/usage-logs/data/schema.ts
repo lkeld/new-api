@@ -45,6 +45,10 @@ export const usageLogSchema = z.object({
   other: z.string().default(''),
   request_id: z.string().default(''),
   upstream_request_id: z.string().default(''),
+  // Opt-in content logging (admin-only). Empty unless the owning user enabled
+  // RecordContentLog; stripped server-side for non-admin viewers.
+  request_body: z.string().default(''),
+  response_body: z.string().default(''),
 })
 
 export type UsageLog = z.infer<typeof usageLogSchema>

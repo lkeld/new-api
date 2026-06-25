@@ -116,12 +116,21 @@ type RelayInfo struct {
 	AudioUsage             bool
 	ReasoningEffort        string
 	UserSetting            dto.UserSetting
-	UserEmail              string
-	UserQuota              int
-	RelayFormat            types.RelayFormat
-	SendResponseCount      int
-	ReceivedResponseCount  int
-	FinalPreConsumedQuota  int // 最终预消耗的配额
+	// RecordContentLog mirrors the per-user opt-in flag for input/output content
+	// logging. It is read once at RelayInfo construction so hot paths (e.g. the
+	// streaming scanner) can early-skip with a plain bool check and do ZERO
+	// buffering when the flag is off (the default).
+	RecordContentLog bool
+	// CapturedResponseBody holds the upstream response content captured for opt-in
+	// content logging. It is only populated when RecordContentLog is true; nil
+	// otherwise. Consumed at service.PostTextConsumeQuota.
+	CapturedResponseBody  []byte
+	UserEmail             string
+	UserQuota             int
+	RelayFormat           types.RelayFormat
+	SendResponseCount     int
+	ReceivedResponseCount int
+	FinalPreConsumedQuota int // 最终预消耗的配额
 	// ForcePreConsume 为 true 时禁用 BillingSession 的信任额度旁路，
 	// 强制预扣全额。用于异步任务（视频/音乐生成等），因为请求返回后任务仍在运行，
 	// 必须在提交前锁定全额。
@@ -509,6 +518,9 @@ func genBaseRelayInfo(c *gin.Context, request dto.Request) *RelayInfo {
 	userSetting, ok := common.GetContextKeyType[dto.UserSetting](c, constant.ContextKeyUserSetting)
 	if ok {
 		info.UserSetting = userSetting
+		// Cache the opt-in content-logging flag as a plain bool so hot paths
+		// (streaming scanner) avoid any map/struct lookup and can no-op when off.
+		info.RecordContentLog = userSetting.RecordContentLog
 	}
 
 	return info

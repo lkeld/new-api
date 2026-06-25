@@ -84,6 +84,16 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 	logger.LogDebug(c, "streaming timeout seconds: %d", int64(streamingTimeout.Seconds()))
 	logger.LogDebug(c, "ping interval seconds: %d", int64(pingInterval.Seconds()))
 
+	// Opt-in content logging: only accumulate SSE deltas when the user enabled
+	// RecordContentLog. When off (default), contentBuf stays nil and the scanner
+	// hot path performs a single bool check with ZERO buffering. Declared here so
+	// the cleanup defer below can flush it into RelayInfo only AFTER the scanner
+	// goroutine has exited (wg.Wait), avoiding any data race on the buffer.
+	var contentBuf *strings.Builder
+	if info.RecordContentLog {
+		contentBuf = &strings.Builder{}
+	}
+
 	// 改进资源清理，确保所有 goroutine 正确退出
 	defer func() {
 		// 通知所有 goroutine 停止
@@ -103,6 +113,11 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 
 		select {
 		case <-done:
+			// All goroutines (incl. the scanner that writes contentBuf) have
+			// exited; safe to read the buffer and hand it to RelayInfo.
+			if contentBuf != nil && contentBuf.Len() > 0 {
+				info.CapturedResponseBody = []byte(contentBuf.String())
+			}
 		case <-time.After(5 * time.Second):
 			logger.LogError(c, "timeout waiting for goroutines to exit")
 		}
@@ -249,6 +264,14 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 			if !strings.HasPrefix(data, "[DONE]") {
 				info.SetFirstResponseTime()
 				info.ReceivedResponseCount++
+
+				// Opt-in content logging: accumulate raw SSE delta payloads.
+				// contentBuf is non-nil only when RecordContentLog is enabled,
+				// so when off this branch is never entered (no buffering).
+				if contentBuf != nil && contentBuf.Len() < common.LogContentMaxBytes {
+					contentBuf.WriteString(data)
+					contentBuf.WriteByte('\n')
+				}
 
 				select {
 				case dataChan <- data:

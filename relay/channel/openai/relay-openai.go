@@ -195,6 +195,14 @@ func OpenaiHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Respo
 		return nil, types.NewOpenAIError(err, types.ErrorCodeReadResponseBodyFailed, http.StatusInternalServerError)
 	}
 	logger.LogDebug(c, "upstream response body: %s", responseBody)
+	// Opt-in content logging: capture the raw non-streaming response body only
+	// when the user enabled RecordContentLog. When off (default), this is a no-op
+	// (single bool check) and nothing is buffered/copied.
+	if info.RecordContentLog && len(responseBody) > 0 {
+		captured := make([]byte, len(responseBody))
+		copy(captured, responseBody)
+		info.CapturedResponseBody = captured
+	}
 	// Unmarshal to simpleResponse
 	if info.ChannelType == constant.ChannelTypeOpenRouter && info.ChannelOtherSettings.IsOpenRouterEnterprise() {
 		// 尝试解析为 openrouter enterprise

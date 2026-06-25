@@ -78,6 +78,7 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
     gotify_priority: 5,
     accept_unset_model_ratio_model: false,
     record_ip_log: false,
+    record_content_log: false,
     upstream_model_update_notify_enabled: false,
   })
 
@@ -106,6 +107,7 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
         accept_unset_model_ratio_model:
           parsed.accept_unset_model_ratio_model || false,
         record_ip_log: parsed.record_ip_log || false,
+        record_content_log: parsed.record_content_log || false,
         upstream_model_update_notify_enabled:
           parsed.upstream_model_update_notify_enabled || false,
       })
@@ -387,6 +389,26 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
             className='shrink-0'
             checked={settings.record_ip_log}
             onCheckedChange={(checked) => updateField('record_ip_log', checked)}
+          />
+        </div>
+
+        {/* Record Content Log */}
+        <div className='flex items-start justify-between gap-3 rounded-lg border p-3 sm:items-center sm:p-4'>
+          <div className='space-y-0.5'>
+            <Label htmlFor='recordContent'>{t('Record content log')}</Label>
+            <p className='text-muted-foreground text-xs sm:text-sm'>
+              {t(
+                'Log request and response content (input/output text) for usage logs. Off by default.'
+              )}
+            </p>
+          </div>
+          <Switch
+            id='recordContent'
+            className='shrink-0'
+            checked={settings.record_content_log}
+            onCheckedChange={(checked) =>
+              updateField('record_content_log', checked)
+            }
           />
         </div>
       </div>
