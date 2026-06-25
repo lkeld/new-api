@@ -212,6 +212,14 @@ func Register(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgUserExists)
 		return
 	}
+	// invite-code gate (Task: 江南皮革厂): when enabled, self-registration requires a valid,
+	// non-expired invite code with uses remaining. Consumed atomically here, before user creation.
+	if common.RegisterRequiresInviteCode {
+		if err := model.ValidateAndConsumeInviteCode(user.InviteCode); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+	}
 	affCode := user.AffCode // this code is the inviter's code, not the user's own code
 	inviterId, _ := model.GetUserIdByAffCode(affCode)
 	cleanUser := model.User{

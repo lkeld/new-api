@@ -90,6 +90,7 @@ var WeChatAuthEnabled = false
 var TelegramOAuthEnabled = false
 var TurnstileCheckEnabled = false
 var RegisterEnabled = true
+var RegisterRequiresInviteCode = false // 注册需要有效邀请码 / require a valid invite code to self-register
 
 var EmailDomainRestrictionEnabled = false // 是否启用邮箱域名限制
 var EmailAliasRestrictionEnabled = false  // 是否启用邮箱别名限制
@@ -260,6 +261,12 @@ const (
 	RedemptionCodeStatusEnabled  = 1 // don't use 0, 0 is the default value!
 	RedemptionCodeStatusDisabled = 2 // also don't use 0
 	RedemptionCodeStatusUsed     = 3 // also don't use 0
+)
+
+const (
+	InviteCodeStatusEnabled  = 1 // don't use 0
+	InviteCodeStatusDisabled = 2
+	InviteCodeStatusUsed     = 3 // exhausted: all uses consumed
 )
 
 const (
