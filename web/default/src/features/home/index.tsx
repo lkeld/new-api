@@ -41,6 +41,20 @@ export function Home() {
   }
 
   if (content) {
+    // A self-contained HTML landing (e.g. our 江南皮革厂 page) renders full-bleed in an
+    // isolated iframe via srcDoc — covering the public header so it's a true edge-to-edge page.
+    // <base target="_top"> (injected at deploy time) makes its links navigate the top window.
+    const looksLikeHtml =
+      !isUrl && /^\s*<(?:!doctype|html|body|div|section|main|header|style)/i.test(content)
+    if (looksLikeHtml) {
+      return (
+        <iframe
+          srcDoc={content}
+          className='fixed inset-0 h-screen w-screen border-none'
+          title={t('Custom Home Page')}
+        />
+      )
+    }
     return (
       <PublicLayout showMainContainer={false}>
         <main className='overflow-x-hidden'>
