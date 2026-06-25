@@ -63,13 +63,16 @@ export function Home() {
     if (looksLikeHtml) {
       return (
         <PublicLayout showMainContainer={false}>
-          <iframe
-            srcDoc={content}
-            title={t('Custom Home Page')}
-            scrolling='no'
-            className='block w-full border-none'
-            style={{ height: landingHeight ? `${landingHeight}px` : '100vh' }}
-          />
+          {/* pt-20 mirrors the default <main> offset so the landing clears the overlay header. */}
+          <div className='pt-20'>
+            <iframe
+              srcDoc={content}
+              title={t('Custom Home Page')}
+              scrolling='no'
+              className='block w-full border-none'
+              style={{ height: landingHeight ? `${landingHeight}px` : '100vh' }}
+            />
+          </div>
         </PublicLayout>
       )
     }
