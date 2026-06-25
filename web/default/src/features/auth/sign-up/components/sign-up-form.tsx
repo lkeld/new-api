@@ -99,10 +99,11 @@ export function SignUpForm({
   const hasUserAgreement = Boolean(status?.user_agreement_enabled)
   const hasPrivacyPolicy = Boolean(status?.privacy_policy_enabled)
   const requiresLegalConsent = hasUserAgreement || hasPrivacyPolicy
-  const inviteCodeRequired = Boolean(
+  // boolean | undefined: undefined while the status query is still loading. We deliberately do
+  // NOT coerce to false so a not-yet-loaded status can't hide a field the backend requires.
+  const inviteCodeRequired =
     status?.register_requires_invite_code ??
-      status?.data?.register_requires_invite_code
-  )
+    status?.data?.register_requires_invite_code
   const oauthRegisterEnabled =
     status?.oauth_register_enabled ??
     status?.data?.oauth_register_enabled ??
@@ -262,8 +263,10 @@ export function SignUpForm({
           )}
         />
 
-        {/* Invite Code Field */}
-        {inviteCodeRequired && (
+        {/* Invite Code Field — shown whenever the gate is on; if the status flag hasn't loaded
+            yet we still show it (the backend is the source of truth and enforces it either way),
+            so a stale/late status can never hide a field the server requires. */}
+        {inviteCodeRequired !== false && (
           <FormField
             control={form.control}
             name='invite_code'
