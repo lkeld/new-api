@@ -90,6 +90,7 @@ export function SignUpForm({
       email: '',
       password: '',
       confirmPassword: '',
+      invite_code: '',
     },
   })
 
@@ -98,6 +99,10 @@ export function SignUpForm({
   const hasUserAgreement = Boolean(status?.user_agreement_enabled)
   const hasPrivacyPolicy = Boolean(status?.privacy_policy_enabled)
   const requiresLegalConsent = hasUserAgreement || hasPrivacyPolicy
+  const inviteCodeRequired = Boolean(
+    status?.register_requires_invite_code ??
+      status?.data?.register_requires_invite_code
+  )
   const oauthRegisterEnabled =
     status?.oauth_register_enabled ??
     status?.data?.oauth_register_enabled ??
@@ -134,6 +139,13 @@ export function SignUpForm({
     }
   }, [])
 
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search)
+      .get('invite_code')
+      ?.trim()
+    if (code) form.setValue('invite_code', code)
+  }, [form])
+
   async function onSubmit(data: z.infer<typeof registerFormSchema>) {
     if (requiresLegalConsent && !agreedToLegal) {
       toast.error(legalConsentErrorMessage)
@@ -152,6 +164,11 @@ export function SignUpForm({
       }
     }
 
+    if (inviteCodeRequired && !data.invite_code?.trim()) {
+      toast.error(t('Please enter your invite code'))
+      return
+    }
+
     if (!validateTurnstile()) return
 
     setIsLoading(true)
@@ -162,6 +179,7 @@ export function SignUpForm({
         email: data.email || undefined,
         verification_code: verificationCode || undefined,
         aff_code: getAffiliateCode(),
+        invite_code: data.invite_code || undefined,
         turnstile: turnstileToken,
       })
 
@@ -243,6 +261,26 @@ export function SignUpForm({
             </FormItem>
           )}
         />
+
+        {/* Invite Code Field */}
+        {inviteCodeRequired && (
+          <FormField
+            control={form.control}
+            name='invite_code'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('Invite code')}</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder={t('Enter your invite code')}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         {/* Password Field */}
         <FormField
