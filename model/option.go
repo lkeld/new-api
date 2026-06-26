@@ -140,6 +140,10 @@ func InitOptionMap() {
 	common.OptionMap["ModelRequestRateLimitDurationMinutes"] = strconv.Itoa(setting.ModelRequestRateLimitDurationMinutes)
 	common.OptionMap["ModelRequestRateLimitSuccessCount"] = strconv.Itoa(setting.ModelRequestRateLimitSuccessCount)
 	common.OptionMap["ModelRequestRateLimitGroup"] = setting.ModelRequestRateLimitGroup2JSONString()
+	common.OptionMap["WebSearchEnabled"] = strconv.FormatBool(setting.WebSearchEnabled)
+	common.OptionMap["BraveSearchAPIKey"] = setting.BraveSearchAPIKey
+	common.OptionMap["WebSearchDefaultMaxUses"] = strconv.Itoa(setting.WebSearchDefaultMaxUses)
+	common.OptionMap["WebSearchResultsPerQuery"] = strconv.Itoa(setting.WebSearchResultsPerQuery)
 	common.OptionMap["ModelRatio"] = ratio_setting.ModelRatio2JSONString()
 	common.OptionMap["ModelPrice"] = ratio_setting.ModelPrice2JSONString()
 	common.OptionMap["CacheRatio"] = ratio_setting.CacheRatio2JSONString()
@@ -351,6 +355,8 @@ func updateOptionMap(key string, value string) (err error) {
 			setting.CheckSensitiveOnPromptEnabled = boolValue
 		case "ModelRequestRateLimitEnabled":
 			setting.ModelRequestRateLimitEnabled = boolValue
+		case "WebSearchEnabled":
+			setting.WebSearchEnabled = boolValue
 		case "StopOnSensitiveEnabled":
 			setting.StopOnSensitiveEnabled = boolValue
 		case "SMTPSSLEnabled":
@@ -521,6 +527,12 @@ func updateOptionMap(key string, value string) (err error) {
 		setting.ModelRequestRateLimitSuccessCount, _ = strconv.Atoi(value)
 	case "ModelRequestRateLimitGroup":
 		err = setting.UpdateModelRequestRateLimitGroupByJSONString(value)
+	case "BraveSearchAPIKey":
+		setting.BraveSearchAPIKey = value
+	case "WebSearchDefaultMaxUses":
+		setting.WebSearchDefaultMaxUses, _ = strconv.Atoi(value)
+	case "WebSearchResultsPerQuery":
+		setting.WebSearchResultsPerQuery, _ = strconv.Atoi(value)
 	case "RetryTimes":
 		common.RetryTimes, _ = strconv.Atoi(value)
 	case "DataExportInterval":

@@ -132,6 +132,13 @@ func ClaudeHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *typ
 		}
 	}
 
+	// Gateway-executed web search: if the request asks for the Anthropic web_search tool
+	// against an OpenAI-compatible upstream that can't run it natively, run the search loop
+	// ourselves (via Brave) and feed results back. No-op for all other requests.
+	if apiErr, handled := tryClaudeWebSearch(c, info, request, adaptor); handled {
+		return apiErr
+	}
+
 	if !model_setting.GetGlobalSettings().PassThroughRequestEnabled &&
 		!info.ChannelSetting.PassThroughBodyEnabled &&
 		service.ShouldChatCompletionsUseResponsesGlobal(info.ChannelId, info.ChannelType, info.OriginModelName) {
